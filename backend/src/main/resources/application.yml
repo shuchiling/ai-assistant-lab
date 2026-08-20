@@ -8,7 +8,7 @@ spring:
     model:
       embedding: none
     openai:
-      api-key: ${OPENAI_API_KEY:}
+      api-key: ${OPENAI_API_KEY:11111}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       chat:
         options:

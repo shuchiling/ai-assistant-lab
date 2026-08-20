@@ -167,8 +167,19 @@ h2 {
   resize: vertical;
 }
 
-.composer button {
-  justify-self: end;
+.composer textarea:disabled {
+  background: #f8fafc;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.composerActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.composerActions button {
   background: #2563eb;
   border: 0;
   border-radius: 8px;
@@ -179,7 +190,13 @@ h2 {
   padding: 10px 16px;
 }
 
-.composer button:disabled {
+.composerActions button.secondaryButton {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #172033;
+}
+
+.composerActions button:disabled {
   background: #94a3b8;
   cursor: not-allowed;
 }

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { sendChatStream } from '../api/chat';
 
 export type ChatMessage = {
@@ -16,6 +16,7 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
   const [input, setInput] = useState('Explain what Spring AI is in practical Java terms.');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,8 +27,10 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
     setInput('');
     setIsStreaming(true);
 
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     const assistantId = crypto.randomUUID();
-    const nextMessages: ChatMessage[] = [
+    let nextMessages: ChatMessage[] = [
       ...messages,
       { id: crypto.randomUUID(), role: 'user', content: prompt },
       { id: assistantId, role: 'assistant', content: '' }
@@ -37,25 +40,35 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
     try {
       await sendChatStream(
         prompt,
-        (token) => {
-          onMessagesChange(
-            nextMessages.map((message) =>
+        {
+          onToken: (token) => {
+            nextMessages = nextMessages.map((message) =>
               message.id === assistantId
                 ? { ...message, content: message.content + token }
                 : message
-            )
-          );
-          nextMessages[nextMessages.length - 1] = {
-            ...nextMessages[nextMessages.length - 1],
-            content: nextMessages[nextMessages.length - 1].content + token
-          };
+            );
+            onMessagesChange(nextMessages);
+          },
+          onDone: () => finishStreaming()
         },
-        () => setIsStreaming(false)
+        { signal: abortController.signal }
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Chat request failed');
-      setIsStreaming(false);
+      if (!isAbortError(err)) {
+        setError(err instanceof Error ? err.message : 'Chat request failed');
+      }
+      finishStreaming();
     }
+  }
+
+  function handleStop() {
+    abortControllerRef.current?.abort();
+    finishStreaming();
+  }
+
+  function finishStreaming() {
+    abortControllerRef.current = null;
+    setIsStreaming(false);
   }
 
   return (
@@ -88,11 +101,23 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
           onChange={(event) => setInput(event.target.value)}
           placeholder="Ask about Java AI application engineering"
           rows={3}
+          disabled={isStreaming}
         />
-        <button type="submit" disabled={isStreaming || input.trim().length === 0}>
-          {isStreaming ? 'Streaming' : 'Send'}
-        </button>
+        <div className="composerActions">
+          {isStreaming ? (
+            <button type="button" className="secondaryButton" onClick={handleStop}>
+              Stop
+            </button>
+          ) : null}
+          <button type="submit" disabled={isStreaming || input.trim().length === 0}>
+            {isStreaming ? 'Streaming' : 'Send'}
+          </button>
+        </div>
       </form>
     </section>
   );
+}
+
+function isAbortError(err: unknown): boolean {
+  return err instanceof DOMException && err.name === 'AbortError';
 }

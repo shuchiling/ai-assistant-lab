@@ -19,4 +19,9 @@ class ChatRequestValidationTest {
     void acceptsNormalMessage() {
         assertThat(validator.validate(new ChatRequest("Explain SSE in one sentence."))).isEmpty();
     }
+
+    @Test
+    void rejectsMessageLongerThanLimit() {
+        assertThat(validator.validate(new ChatRequest("a".repeat(4001)))).isNotEmpty();
+    }
 }
