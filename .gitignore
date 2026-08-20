@@ -1,0 +1,21 @@
+# Java
+backend/target/
+*.class
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.tsbuildinfo
+
+# IDE
+.idea/
+.vscode/
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log

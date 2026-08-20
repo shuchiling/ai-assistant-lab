@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: ai-assistant-lab
+  ai:
+    model:
+      embedding: none
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:gpt-4.1-mini}
+          temperature: ${OPENAI_CHAT_TEMPERATURE:0.7}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
