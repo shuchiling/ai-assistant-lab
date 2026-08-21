@@ -1,5 +1,5 @@
 import { FormEvent, useRef, useState } from 'react';
-import { sendChatStream } from '../api/chat';
+import { ChatRequestMessage, sendChatStream } from '../api/chat';
 
 export type ChatMessage = {
   id: string;
@@ -30,16 +30,19 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     const assistantId = crypto.randomUUID();
+    const userMessage: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: prompt };
+    // 先构造后端请求，再追加空 assistant 占位，避免把 UI 占位消息发送给模型。
+    const requestMessages = toRequestMessages([...messages, userMessage]);
     let nextMessages: ChatMessage[] = [
       ...messages,
-      { id: crypto.randomUUID(), role: 'user', content: prompt },
+      userMessage,
       { id: assistantId, role: 'assistant', content: '' }
     ];
     onMessagesChange(nextMessages);
 
     try {
       await sendChatStream(
-        prompt,
+        requestMessages,
         {
           onToken: (token) => {
             nextMessages = nextMessages.map((message) =>
@@ -116,6 +119,13 @@ export function ChatPanel({ messages, onMessagesChange }: ChatPanelProps) {
       </form>
     </section>
   );
+}
+
+function toRequestMessages(messages: ChatMessage[]): ChatRequestMessage[] {
+  // system prompt 由后端托管；浏览器只提交 user/assistant 对话轮次。
+  return messages
+    .filter((message) => message.content.trim().length > 0)
+    .map((message) => ({ role: message.role, content: message.content.trim() }));
 }
 
 function isAbortError(err: unknown): boolean {

@@ -1,6 +1,12 @@
 server:
   port: ${SERVER_PORT:8080}
 
+ai:
+  chat:
+    system-prompt: ${AI_CHAT_SYSTEM_PROMPT:You are a concise AI assistant for Java AI application engineering practice.}
+    max-history-messages: ${AI_CHAT_MAX_HISTORY_MESSAGES:12}
+    max-prompt-characters: ${AI_CHAT_MAX_PROMPT_CHARACTERS:12000}
+
 spring:
   application:
     name: ai-assistant-lab

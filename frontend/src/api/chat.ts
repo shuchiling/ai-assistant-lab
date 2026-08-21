@@ -1,5 +1,13 @@
+export type ChatMessageRole = 'user' | 'assistant';
+
+export type ChatRequestMessage = {
+  role: ChatMessageRole;
+  content: string;
+};
+
 export type ChatRequest = {
-  message: string;
+  message?: string;
+  messages?: ChatRequestMessage[];
 };
 
 export type ChatResponse = {
@@ -32,7 +40,7 @@ export async function sendChat(message: string): Promise<ChatResponse> {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message } satisfies ChatRequest)
+    body: JSON.stringify(toChatRequest(message))
   });
 
   if (!response.ok) {
@@ -43,14 +51,14 @@ export async function sendChat(message: string): Promise<ChatResponse> {
 }
 
 export async function sendChatStream(
-  message: string,
+  request: string | ChatRequestMessage[],
   handlers: ChatStreamHandlers,
   options: ChatStreamOptions = {}
 ): Promise<void> {
   const response = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message } satisfies ChatRequest),
+    body: JSON.stringify(toChatRequest(request)),
     signal: options.signal
   });
 
@@ -85,6 +93,18 @@ export async function sendChatStream(
   }
 
   handlers.onDone();
+}
+
+function toChatRequest(request: string | ChatRequestMessage[]): ChatRequest {
+  // 保持旧的单 message API 可用，同时支持 ChatPanel 提交多轮 messages 历史。
+  if (typeof request === 'string') {
+    return { message: request };
+  }
+  return {
+    messages: request
+      .filter((message) => message.content.trim().length > 0)
+      .map((message) => ({ role: message.role, content: message.content.trim() }))
+  };
 }
 
 function parseSseEvent(event: string): { eventName: string; data: string } {

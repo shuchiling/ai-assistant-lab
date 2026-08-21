@@ -9,24 +9,31 @@ class SpringAiChatModelClient implements ChatModelClient {
 
     private final ChatClient chatClient;
 
-    SpringAiChatModelClient(ChatClient.Builder builder) {
+    SpringAiChatModelClient(ChatClient.Builder builder, ChatPromptProperties properties) {
+        // system prompt 来自后端配置，浏览器端不能覆盖这个高信任上下文。
         this.chatClient = builder
-                .defaultSystem("You are a concise AI assistant for Java AI application engineering practice.")
+                .defaultSystem(properties.getSystemPrompt())
                 .build();
     }
 
+    /**
+     * 同步模型调用：把组装后的多轮消息渲染为当前 Spring AI 客户端可消费的 user 内容。
+     */
     @Override
-    public String chat(String message) {
+    public String chat(AssembledPrompt prompt) {
         return chatClient.prompt()
-                .user(message)
+                .user(prompt.renderConversation())
                 .call()
                 .content();
     }
 
+    /**
+     * 流式模型调用：模型返回的 token 由应用服务继续转换为 SSE token 事件。
+     */
     @Override
-    public Flux<String> stream(String message) {
+    public Flux<String> stream(AssembledPrompt prompt) {
         return chatClient.prompt()
-                .user(message)
+                .user(prompt.renderConversation())
                 .stream()
                 .content();
     }
